@@ -1,29 +1,57 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import useAuthStore from './store/authStore';
+import { useSocket } from './hooks/useSocket';
 
-// Pages (built in later phases)
-const ComingSoon = ({ name }) => (
-  <div style={{
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    minHeight: '100vh', flexDirection: 'column', gap: '1rem',
-    fontFamily: 'Inter, sans-serif'
-  }}>
-    <div style={{ fontSize: '3rem' }}>🚀</div>
-    <h1 style={{ color: '#6366f1' }}>TaskFlow</h1>
-    <p style={{ color: '#475569' }}><strong>{name}</strong> — coming in a later phase</p>
-    <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Phase 1: Project setup complete ✅</p>
-  </div>
-);
+import LoginPage    from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import RoomPage     from './pages/RoomPage';
+import AdminPage    from './pages/AdminPage';
+import { PageLoader } from './components/common/UI';
 
+// ── Socket initialiser — renders nothing, just connects ───────────────────────
+const SocketInitialiser = () => {
+  useSocket();
+  return null;
+};
+
+// ── Route guards ──────────────────────────────────────────────────────────────
+const PrivateRoute = ({ children }) => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, isAdmin } = useAuthStore();
+  if (!isAuthenticated()) return <Navigate to="/login" replace />;
+  if (!isAdmin())         return <Navigate to="/dashboard" replace />;
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
+};
+
+// ── App ───────────────────────────────────────────────────────────────────────
 function App() {
   return (
     <BrowserRouter>
+      <SocketInitialiser />
       <Routes>
-        <Route path="/login"    element={<ComingSoon name="Login Page" />} />
-        <Route path="/register" element={<ComingSoon name="Register Page" />} />
-        <Route path="/dashboard" element={<ComingSoon name="Dashboard" />} />
-        <Route path="/rooms/:id" element={<ComingSoon name="Room Detail" />} />
-        <Route path="/admin"   element={<ComingSoon name="Admin Panel" />} />
-        <Route path="*"        element={<Navigate to="/login" replace />} />
+        {/* Public */}
+        <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+
+        {/* Protected */}
+        <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+        <Route path="/rooms/:id" element={<PrivateRoute><RoomPage /></PrivateRoute>} />
+
+        {/* Admin */}
+        <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+
+        {/* Default */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

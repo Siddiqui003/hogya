@@ -1,0 +1,161 @@
+.page { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.backBtn {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.875rem; color: var(--color-text-muted);
+  padding: 0; display: inline-flex; align-items: center; gap: 0.375rem;
+  transition: color var(--transition-fast);
+  align-self: flex-start;
+}
+.backBtn:hover { color: var(--color-primary); }
+
+/* Two column layout */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 22rem;
+  gap: var(--space-6);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+.mainCol { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* Room header */
+.roomHeader {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.roomMeta { display: flex; flex-direction: column; gap: var(--space-2); }
+.roomTitleRow { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.roomTitle {
+  font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em;
+  color: var(--color-text); margin: 0;
+}
+.roomCode {
+  font-family: var(--font-mono); font-size: 0.8125rem;
+  color: var(--color-text-muted); background: var(--color-bg-alt);
+  padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);
+}
+.roomDesc { font-size: 0.9375rem; color: var(--color-text-secondary); margin: 0; }
+
+.progressSection { display: flex; flex-direction: column; gap: var(--space-2); }
+.progressHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.875rem;
+}
+.progressLabel { font-weight: 500; color: var(--color-text-secondary); }
+.progressCount { font-weight: 600; color: var(--color-text); display: flex; align-items: center; gap: var(--space-2); }
+.progressPct { color: var(--color-text-muted); font-weight: 400; font-size: 0.8125rem; }
+
+.progressTrack { height: 8px; background: var(--color-border); border-radius: var(--radius-full); overflow: hidden; }
+.progressFill {
+  height: 100%; background: var(--color-primary); border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+}
+.progressDone { background: var(--color-success); }
+.allDoneMsg { font-size: 0.9375rem; color: var(--color-success-dark); font-weight: 500; margin: 0; }
+
+/* Task card */
+.taskCard {
+  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+  border: 1.5px solid #c7d2fe;
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+.taskCardInner {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: var(--space-6);
+  flex-wrap: wrap;
+}
+.taskLabel { font-size: 0.75rem; font-weight: 600; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 0.375rem; }
+.taskName { font-size: 1.125rem; font-weight: 600; color: var(--color-text); margin: 0; }
+.completedAt { font-size: 0.8125rem; color: var(--color-success-dark); margin: 0.375rem 0 0; }
+.taskBtn { flex-shrink: 0; }
+
+/* Section */
+.section {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.sectionHeader {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1.5px solid var(--color-border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sectionTitle { font-size: 0.9375rem; font-weight: 600; color: var(--color-text); margin: 0; }
+
+.liveTag {
+  display: flex; align-items: center; gap: 0.375rem;
+  font-size: 0.75rem; font-weight: 600; color: var(--color-success-dark);
+}
+.liveDot {
+  width: 0.5rem; height: 0.5rem; border-radius: 50%;
+  background: var(--color-success);
+  animation: pulse 1.8s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+/* Members */
+.memberList { display: flex; flex-direction: column; }
+.memberRow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+  gap: var(--space-4);
+}
+.memberRow:last-child { border-bottom: none; }
+.memberRow:hover { background: var(--color-bg-alt); }
+.memberDone { background: #f0fdf4; }
+.memberDone:hover { background: #dcfce7; }
+
+.memberLeft { display: flex; align-items: center; gap: var(--space-3); }
+.memberName { font-size: 0.9375rem; font-weight: 500; color: var(--color-text); display: block; }
+.youTag { color: var(--color-text-muted); font-weight: 400; }
+.completedTime { font-size: 0.8125rem; color: var(--color-text-muted); display: block; }
+.memberRight { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
+.onlineLabel { font-size: 0.75rem; color: var(--color-success-dark); font-weight: 500; }
+
+/* Sidebar */
+.sidebar {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: sticky;
+  top: 5rem;
+}
+.noActivity {
+  padding: var(--space-6); font-size: 0.875rem;
+  color: var(--color-text-muted); text-align: center; margin: 0;
+}
+.activityFeed { display: flex; flex-direction: column; max-height: 60vh; overflow-y: auto; }
+
+/* Activity item */
+.activityItem {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  animation: fadeIn 0.3s ease;
+}
+.activityItem:last-child { border-bottom: none; }
+.activityDone .activityDot { background: var(--color-success); }
+
+.activityDot {
+  width: 0.5rem; height: 0.5rem; border-radius: 50%;
+  background: var(--color-primary); flex-shrink: 0; margin-top: 0.375rem;
+}
+.activityContent { display: flex; flex-direction: column; gap: 0.125rem; }
+.activityText { font-size: 0.875rem; color: var(--color-text); }
+.activityTime { font-size: 0.75rem; color: var(--color-text-muted); }
+
+@keyframes fadeIn { from{opacity:0;transform:translateX(-6px);} to{opacity:1;transform:translateX(0);} }
