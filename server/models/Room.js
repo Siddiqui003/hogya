@@ -95,16 +95,24 @@ roomSchema.virtual('completionPercentage').get(function () {
 // ── Instance helpers ──────────────────────────────────────────────────────────
 // Check if a user is a member
 roomSchema.methods.hasMember = function (userId) {
-  return this.members.some((m) => m.user.toString() === userId.toString());
+  return this.members.some((m) => {
+    const memberId = m.user._id ? m.user._id : m.user;
+    return memberId.toString() === userId.toString()
+    // m.user.toString() === userId.toString());
+  });
 };
 
 // Get a member entry by userId
 roomSchema.methods.getMember = function (userId) {
-  return this.members.find((m) => m.user.toString() === userId.toString());
+  return this.members.find((m) => {
+     const memberId = m.user._id ? m.user._id : m.user;
+    return memberId.toString() === userId.toString()
+    // m.user.toString() === userId.toString());
+  });
 };
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
-roomSchema.index({ code: 1 });
+// roomSchema.index({ code: 1 });
 roomSchema.index({ 'members.user': 1 });
 roomSchema.index({ createdBy: 1 });
 

@@ -76,6 +76,6 @@ userSchema.methods.toPublic = function () {
 };
 
 // Index for fast username lookup
-userSchema.index({ username: 1 });
+// userSchema.index({ username: 1 });
 
 module.exports = mongoose.model('User', userSchema);
