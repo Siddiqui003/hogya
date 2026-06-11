@@ -12,8 +12,7 @@ const emitToRoom = (io, roomId, event, payload) => {
 const completeTask = catchAsync(async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user._id;
-  // console.log(roomId);
-  // console.log(userId);
+
   const room = await Room.findOne({ _id: roomId, isActive: true }).populate(
     'members.user',
     'username displayName'
@@ -24,10 +23,7 @@ const completeTask = catchAsync(async (req, res) => {
     return sendError(res, 'You are not a member of this room.', 403);
   }
 
-  // console.log("USER ID:", userId);
-  // console.log("ROOM MEMBERS:", JSON.stringify(room.members, null, 2));
   const member = room.getMember(userId);
-  console.log(member)
   if (member.isCompleted) {
     return sendError(res, 'You have already completed this task.', 409);
   }
