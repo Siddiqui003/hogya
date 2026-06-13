@@ -11,12 +11,16 @@ import { timeAgo, formatDateTime, activityLabel } from '../utils/date';
 import styles from './RoomPage.module.css';
 
 // ── Member row ────────────────────────────────────────────────────────────────
-const MemberRow = ({ member, isCurrentUser, onlineUsers }) => {
+const MemberRow = ({ member, isCurrentUser, onlineUsers, isPulsing }) => {
   const name = member.user?.displayName || member.user?.username || '?';
   const isOnline = onlineUsers.some((u) => u.userId === member.user?._id?.toString());
 
   return (
-    <div className={[styles.memberRow, member.isCompleted ? styles.memberDone : ''].join(' ')}>
+    <div className={[
+      styles.memberRow,
+      member.isCompleted ? styles.memberDone : '',
+      isPulsing ? styles.memberPulse : '',
+    ].join(' ')}>
       <div className={styles.memberLeft}>
         <Avatar name={name} size="sm" online={isOnline} />
         <div>
@@ -63,7 +67,7 @@ const ActivityItem = ({ activity }) => {
 const RoomPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentRoom, activities, loading, actionLoading, error, fetchRoom, completeTask, reopenTask, clearError, clearCurrentRoom } = useRoomStore();
+  const { currentRoom, activities, loading, actionLoading, error, recentlyUpdated, fetchRoom, completeTask, reopenTask, clearError, clearCurrentRoom } = useRoomStore();
   const { user, isAdmin } = useAuthStore();
   const onlineUsers = useSocketStore((s) => s.getOnlineUsers(id));
 
@@ -100,9 +104,9 @@ const RoomPage = () => {
 
   const handleTaskToggle = async () => {
     if (myCompleted) {
-      await reopenTask(id);
+      await reopenTask(id, user._id);
     } else {
-      await completeTask(id);
+      await completeTask(id, user._id);
     }
   };
 
@@ -189,6 +193,7 @@ const RoomPage = () => {
                     member={m}
                     isCurrentUser={m.user?._id?.toString() === user?._id?.toString()}
                     onlineUsers={onlineUsers}
+                    isPulsing={!!recentlyUpdated[m.user?._id?.toString()]}
                   />
                 ))}
               </div>

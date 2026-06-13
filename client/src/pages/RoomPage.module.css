@@ -118,6 +118,12 @@
 .memberDone { background: #f0fdf4; }
 .memberDone:hover { background: #dcfce7; }
 
+.memberPulse { animation: rowPulse 1.6s ease-out; }
+@keyframes rowPulse {
+  0%   { background: var(--color-primary-bg); box-shadow: inset 3px 0 0 var(--color-primary); }
+  100% { background: transparent; box-shadow: inset 3px 0 0 transparent; }
+}
+
 .memberLeft { display: flex; align-items: center; gap: var(--space-3); }
 .memberName { font-size: 0.9375rem; font-weight: 500; color: var(--color-text); display: block; }
 .youTag { color: var(--color-text-muted); font-weight: 400; }

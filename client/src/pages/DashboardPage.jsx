@@ -72,9 +72,7 @@ const DashboardPage = () => {
   const { rooms, loading, fetchMyRooms } = useRoomStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  
-  //tested error handling
-  // throw new Error('test');
+
   useEffect(() => { fetchMyRooms(); }, []);
 
   if (loading && !rooms.length) return <PageLoader />;

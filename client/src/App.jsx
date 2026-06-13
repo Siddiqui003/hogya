@@ -5,6 +5,8 @@ import useAuthInit from './hooks/useAuthInit';
 import { useSocket } from './hooks/useSocket';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import SessionExpiredModal from './components/common/SessionExpiredModal';
+import ConnectionBanner from './components/common/ConnectionBanner';
+import ToastContainer from './components/common/ToastContainer';
 import { PageLoader } from './components/common/UI';
 
 import LoginPage        from './pages/LoginPage';
@@ -59,6 +61,8 @@ function AppShell() {
   return (
     <>
       <SocketInitialiser />
+      <ConnectionBanner />
+      <ToastContainer />
 
       {sessionExpired && (
         <SessionExpiredModal onDismiss={() => setSessionExpired(false)} />
