@@ -60,7 +60,7 @@ const RoomCard = ({ room, onClick }) => {
         {/* My status */}
         {myStatus && (
           <Badge variant={myStatus.isCompleted ? 'success' : 'warning'}>
-            {myStatus.isCompleted ? "✓ You're done" : 'Pending'}
+            {myStatus.isCompleted ? '✓ You\u2019re done' : 'Pending'}
           </Badge>
         )}
       </div>
@@ -72,7 +72,9 @@ const DashboardPage = () => {
   const { rooms, loading, fetchMyRooms } = useRoomStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
-
+  
+  //tested error handling
+  // throw new Error('test');
   useEffect(() => { fetchMyRooms(); }, []);
 
   if (loading && !rooms.length) return <PageLoader />;

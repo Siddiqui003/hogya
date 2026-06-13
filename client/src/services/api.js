@@ -18,12 +18,9 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      // Token expired or invalid — clear storage and redirect
-      localStorage.removeItem('tf_token');
-      localStorage.removeItem('tf_user');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+      // Fire a custom event so App.jsx can show the SessionExpiredModal
+      // instead of a jarring hard redirect. The modal will handle logout + navigate.
+      window.dispatchEvent(new CustomEvent('tf:session-expired'));
     }
     return Promise.reject(err);
   }
