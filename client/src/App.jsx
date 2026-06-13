@@ -69,6 +69,12 @@ function AppShell() {
       )}
 
       <Routes>
+        {/* Root — redirect based on auth state */}
+        <Route
+          path="/"
+          element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />}
+        />
+
         {/* Public (redirect to dashboard if already logged in) */}
         <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
