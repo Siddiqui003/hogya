@@ -28,7 +28,12 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (curl, server-to-server, mobile apps)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin ) || 
+    (
+      (origin.includes('taskflow') && origin.endsWith('.vercel.app') 
+      ) 
+    ))
+    {
       return callback(null, true);
     }
     return callback(new Error(`CORS: origin "${origin}" is not allowed.`));
@@ -40,7 +45,11 @@ const corsOptions = {
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || 
+    (
+      (origin.includes('taskflow') && origin.endsWith('.vercel.app') 
+      ) 
+    )) {
         return callback(null, true);
       }
       return callback(new Error(`Socket.IO CORS: origin "${origin}" is not allowed.`));
