@@ -63,3 +63,20 @@
   font-size: 0.875rem;
   color: var(--color-text-secondary);
 }
+
+.toggleButton {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #6b7280;
+}
+
+.toggleButton:hover {
+  color: #374151;
+}

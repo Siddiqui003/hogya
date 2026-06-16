@@ -33,3 +33,23 @@
 
 .hint  { font-size: 0.8125rem; color: var(--color-text-muted); }
 .error { font-size: 0.8125rem; color: var(--color-danger); }
+
+.inputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.hasRightElement {
+  padding-right: 3rem;
+}
+
+.rightElement {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
