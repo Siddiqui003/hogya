@@ -99,6 +99,7 @@ export const useSocket = () => {
     });
 
     socket.on('task:reset', (payload) => {
+      console.log("in socket on task");
       handleTaskReset(payload);
       pushToast('An admin reset all task statuses in this room', 'warning');
     });

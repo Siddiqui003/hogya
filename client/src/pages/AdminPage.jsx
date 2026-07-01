@@ -4,27 +4,108 @@ import { roomService } from '../services/roomService';
 import AppLayout from '../components/layout/AppLayout';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
-import { Badge, Card, Alert, EmptyState, Avatar, Spinner } from '../components/common/UI';
+import { Badge, Alert, EmptyState, Avatar, Spinner } from '../components/common/UI';
 import { timeAgo } from '../utils/date';
 import styles from './AdminPage.module.css';
 
+// ── Delete confirmation modal ─────────────────────────────────────────────────
+const DeleteModal = ({ room, onClose, onDeleted }) => {
+  const [mode, setMode] = useState('soft'); // 'soft' | 'hard'
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [confirmed, setConfirmed] = useState('');
+
+  const handleDelete = async () => {
+    if (mode === 'hard' && confirmed !== room.name) {
+      setError('Room name does not match.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      if (mode === 'hard') {
+        await roomService.adminHardDelete(room._id);
+      } else {
+        await roomService.adminSoftDelete(room._id);
+      }
+      onDeleted(room._id);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete room.');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={styles.modal}>
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>Delete "{room.name}"</h2>
+          <button className={styles.modalClose} onClick={onClose}>✕</button>
+        </div>
+
+        <div className={styles.deleteBody}>
+          {error && <Alert variant="danger">{error}</Alert>}
+
+          <div className={styles.deleteModes}>
+            <button
+              className={[styles.modeBtn, mode === 'soft' ? styles.modeBtnActive : ''].join(' ')}
+              onClick={() => { setMode('soft'); setConfirmed(''); setError(''); }}
+            >
+              <span className={styles.modeBtnTitle}>Deactivate</span>
+              <span className={styles.modeBtnDesc}>Room is hidden from users. Data is preserved. Can be restored from the database.</span>
+            </button>
+            <button
+              className={[styles.modeBtn, mode === 'hard' ? styles.modeBtnHard : ''].join(' ')}
+              onClick={() => { setMode('hard'); setConfirmed(''); setError(''); }}
+            >
+              <span className={styles.modeBtnTitle}>Permanently delete</span>
+              <span className={styles.modeBtnDesc}>Room and all activity logs are erased forever. This cannot be undone.</span>
+            </button>
+          </div>
+
+          {mode === 'hard' && (
+            <Input
+              label={`Type the room name to confirm: "${room.name}"`}
+              value={confirmed}
+              onChange={(e) => { setConfirmed(e.target.value); setError(''); }}
+              placeholder={room.name}
+              autoFocus
+            />
+          )}
+
+          <div className={styles.modalActions}>
+            <Button variant="secondary" onClick={onClose} type="button">Cancel</Button>
+            <Button
+              variant="danger"
+              loading={loading}
+              onClick={handleDelete}
+              disabled={mode === 'hard' && confirmed !== room.name}
+            >
+              {mode === 'soft' ? 'Deactivate room' : 'Delete permanently'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Create room modal ─────────────────────────────────────────────────────────
 const CreateRoomModal = ({ onClose, onCreated }) => {
-  const [form, setForm] = useState({ name: '', taskName: '', description: '', code: '' });
+  const [form, setForm] = useState({ name: '', taskName: '', description: '', code: '', joinable: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setError('');
-    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+    const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setForm((p) => ({ ...p, [e.target.name]: val }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.taskName.trim()) {
-      setError('Room name and task name are required.');
-      return;
-    }
+    if (!form.name.trim() || !form.taskName.trim()) { setError('Room name and task name are required.'); return; }
     setLoading(true);
     try {
       const { data } = await roomService.adminCreateRoom(form);
@@ -32,9 +113,7 @@ const CreateRoomModal = ({ onClose, onCreated }) => {
       onClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create room.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
@@ -46,14 +125,14 @@ const CreateRoomModal = ({ onClose, onCreated }) => {
         </div>
         {error && <Alert variant="danger">{error}</Alert>}
         <form onSubmit={handleSubmit} className={styles.modalForm}>
-          <Input label="Room name" name="name" value={form.name} onChange={handleChange}
-            placeholder="Sprint Team Alpha" required />
-          <Input label="Task name" name="taskName" value={form.taskName} onChange={handleChange}
-            placeholder="Submit weekly status report" required />
-          <Input label="Description" name="description" value={form.description} onChange={handleChange}
-            placeholder="Optional description" />
-          <Input label="Custom code" name="code" value={form.code} onChange={handleChange}
-            placeholder="Leave blank to auto-generate" hint="4–10 uppercase alphanumeric chars" />
+          <Input label="Room name" name="name" value={form.name} onChange={handleChange} placeholder="Sprint Team Alpha" required />
+          <Input label="Task name" name="taskName" value={form.taskName} onChange={handleChange} placeholder="Submit weekly status report" required />
+          <Input label="Description" name="description" value={form.description} onChange={handleChange} placeholder="Optional" />
+          <Input label="Custom code" name="code" value={form.code} onChange={handleChange} placeholder="Leave blank to auto-generate" hint="4–10 uppercase alphanumeric chars" />
+          <label className={styles.checkLabel}>
+            <input type="checkbox" name="joinable" checked={form.joinable} onChange={handleChange} />
+            <span>Open for self-join (users can join via code immediately)</span>
+          </label>
           <div className={styles.modalActions}>
             <Button variant="secondary" onClick={onClose} type="button">Cancel</Button>
             <Button type="submit" loading={loading}>Create room</Button>
@@ -78,9 +157,8 @@ const AddMemberModal = ({ room, onClose, onAdded }) => {
       try {
         const { data } = await roomService.adminListUsers(search);
         setUsers(data.users);
-      } catch {
-        setError('Failed to load users.');
-      } finally { setLoading(false); }
+      } catch { setError('Failed to load users.'); }
+      finally { setLoading(false); }
     };
     const t = setTimeout(fetchUsers, 200);
     return () => clearTimeout(t);
@@ -89,12 +167,10 @@ const AddMemberModal = ({ room, onClose, onAdded }) => {
   const existingIds = new Set(room.members.map((m) => m.user?._id || m.user));
 
   const handleAdd = async (userId) => {
-    setAdding(userId);
-    setError('');
+    setAdding(userId); setError('');
     try {
       const { data } = await roomService.adminAddMember(room._id, userId);
-      onAdded(data.room);
-      onClose();
+      onAdded(data.room); onClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add member.');
     } finally { setAdding(null); }
@@ -108,13 +184,10 @@ const AddMemberModal = ({ room, onClose, onAdded }) => {
           <button className={styles.modalClose} onClick={onClose}>✕</button>
         </div>
         {error && <Alert variant="danger">{error}</Alert>}
-        <Input placeholder="Search users…" value={search}
-          onChange={(e) => setSearch(e.target.value)} className={styles.searchInput} />
+        <Input placeholder="Search users…" value={search} onChange={(e) => setSearch(e.target.value)} className={styles.searchInput} />
         <div className={styles.userList}>
           {loading && <div className={styles.centered}><Spinner /></div>}
-          {!loading && users.length === 0 && (
-            <p className={styles.noUsers}>No users found.</p>
-          )}
+          {!loading && users.length === 0 && <p className={styles.noUsers}>No users found.</p>}
           {users.map((u) => {
             const isMember = existingIds.has(u._id);
             return (
@@ -126,12 +199,9 @@ const AddMemberModal = ({ room, onClose, onAdded }) => {
                     <span className={styles.userHandle}>@{u.username}</span>
                   </div>
                 </div>
-                {isMember ? (
-                  <Badge variant="default">Already in room</Badge>
-                ) : (
-                  <Button size="sm" loading={adding === u._id}
-                    onClick={() => handleAdd(u._id)}>Add</Button>
-                )}
+                {isMember
+                  ? <Badge variant="default">Already in room</Badge>
+                  : <Button size="sm" loading={adding === u._id} onClick={() => handleAdd(u._id)}>Add</Button>}
               </div>
             );
           })}
@@ -142,11 +212,13 @@ const AddMemberModal = ({ room, onClose, onAdded }) => {
 };
 
 // ── Room detail panel ─────────────────────────────────────────────────────────
-const RoomPanel = ({ room, onUpdate }) => {
+const RoomPanel = ({ room, onUpdate, onDelete }) => {
+  const navigate = useNavigate();
   const [removing, setRemoving] = useState(null);
   const [showAddMember, setShowAddMember] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [togglingJoinable, setTogglingJoinable] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   const handleRemoveMember = async (userId, username) => {
     if (!confirm(`Remove ${username} from this room?`)) return;
@@ -157,6 +229,16 @@ const RoomPanel = ({ room, onUpdate }) => {
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to remove member.');
     } finally { setRemoving(null); }
+  };
+
+  const handleToggleJoinable = async () => {
+    setTogglingJoinable(true);
+    try {
+      const { data } = await roomService.adminToggleJoin(room._id);
+      onUpdate({ ...room, joinable: data.joinable });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to toggle.');
+    } finally { setTogglingJoinable(false); }
   };
 
   const completed = room.members.filter((m) => m.isCompleted).length;
@@ -175,14 +257,33 @@ const RoomPanel = ({ room, onUpdate }) => {
           <p className={styles.panelTask}>{room.taskName}</p>
         </div>
         <div className={styles.panelHeaderActions}>
-          <Badge variant={completed === total && total > 0 ? 'success' : 'default'}>
-            {completed}/{total} done
-          </Badge>
-          <Button size="sm" variant="secondary"
-            onClick={() => navigate(`/rooms/${room._id}`)}>View room</Button>
+          <Badge variant={completed === total && total > 0 ? 'success' : 'default'}>{completed}/{total} done</Badge>
+          <Button size="sm" variant="secondary" onClick={() => navigate(`/rooms/${room._id}`)}>View</Button>
+          <Button size="sm" variant="danger" onClick={() => setShowDelete(true)}>Delete</Button>
         </div>
       </div>
 
+      {/* Joinable toggle */}
+      <div className={styles.joinableRow}>
+        <div>
+          <span className={styles.joinableLabel}>Self-join via code</span>
+          <span className={styles.joinableDesc}>
+            {room.joinable
+              ? 'Anyone with the code can join this room.'
+              : 'Only admins can add members to this room.'}
+          </span>
+        </div>
+        <button
+          className={[styles.toggle, room.joinable ? styles.toggleOn : ''].join(' ')}
+          onClick={handleToggleJoinable}
+          disabled={togglingJoinable}
+          aria-label="Toggle joinable"
+        >
+          <span className={styles.toggleKnob} />
+        </button>
+      </div>
+
+      {/* Members */}
       <div className={styles.panelSection}>
         <div className={styles.panelSectionHeader}>
           <h3 className={styles.panelSectionTitle}>Members ({total})</h3>
@@ -190,7 +291,7 @@ const RoomPanel = ({ room, onUpdate }) => {
         </div>
 
         {total === 0 ? (
-          <p className={styles.emptyText}>No members yet. Add some above.</p>
+          <p className={styles.emptyText}>No members yet.</p>
         ) : (
           <div className={styles.memberTable}>
             {room.members.map((m) => {
@@ -233,6 +334,14 @@ const RoomPanel = ({ room, onUpdate }) => {
           onAdded={(updatedRoom) => { onUpdate(updatedRoom); setShowAddMember(false); }}
         />
       )}
+
+      {showDelete && (
+        <DeleteModal
+          room={room}
+          onClose={() => setShowDelete(false)}
+          onDeleted={(id) => { onDelete(id); setShowDelete(false); }}
+        />
+      )}
     </div>
   );
 };
@@ -252,22 +361,21 @@ const AdminPage = () => {
       try {
         const { data } = await roomService.adminListRooms({ search });
         setRooms(data.rooms);
-      } catch {
-        setError('Failed to load rooms.');
-      } finally { setLoading(false); }
+      } catch { setError('Failed to load rooms.'); }
+      finally { setLoading(false); }
     };
     const t = setTimeout(fetchRooms, 200);
     return () => clearTimeout(t);
   }, [search]);
 
-  const handleRoomCreated = (room) => {
-    setRooms((p) => [room, ...p]);
-    setSelectedRoom(room);
-  };
-
+  const handleRoomCreated = (room) => { setRooms((p) => [room, ...p]); setSelectedRoom(room); };
   const handleRoomUpdate = (updatedRoom) => {
     setRooms((p) => p.map((r) => r._id === updatedRoom._id ? updatedRoom : r));
     setSelectedRoom(updatedRoom);
+  };
+  const handleRoomDeleted = (id) => {
+    setRooms((p) => p.filter((r) => r._id !== id));
+    setSelectedRoom(null);
   };
 
   return (
@@ -276,77 +384,57 @@ const AdminPage = () => {
         {error && <Alert variant="danger" onClose={() => setError('')}>{error}</Alert>}
 
         <div className={styles.adminLayout}>
-          {/* Room list sidebar */}
+          {/* Room list */}
           <div className={styles.roomListCol}>
             <div className={styles.roomListHeader}>
               <h1 className={styles.pageTitle}>Admin</h1>
               <Button size="sm" onClick={() => setShowCreate(true)}>+ New room</Button>
             </div>
-
-            <Input
-              placeholder="Search rooms…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={styles.searchInput}
-            />
-
-            {loading ? (
-              <div className={styles.centered}><Spinner /></div>
-            ) : rooms.length === 0 ? (
-              <EmptyState icon="🏠" title="No rooms" description="Create your first room." />
-            ) : (
-              <div className={styles.roomList}>
-                {rooms.map((room) => {
-                  const done = room.members?.filter((m) => m.isCompleted).length || 0;
-                  const total = room.members?.length || 0;
-                  const isSelected = selectedRoom?._id === room._id;
-                  return (
-                    <button
-                      key={room._id}
-                      className={[styles.roomListItem, isSelected ? styles.roomListItemActive : ''].join(' ')}
-                      onClick={() => setSelectedRoom(room)}
-                    >
-                      <div className={styles.roomListItemHeader}>
-                        <span className={styles.roomListItemName}>{room.name}</span>
-                        <code className={styles.roomListItemCode}>{room.code}</code>
-                      </div>
-                      <div className={styles.roomListItemMeta}>
-                        <span>{total} member{total !== 1 ? 's' : ''}</span>
-                        <Badge variant={done === total && total > 0 ? 'success' : 'default'} size="sm">
-                          {done}/{total}
-                        </Badge>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <Input placeholder="Search rooms…" value={search} onChange={(e) => setSearch(e.target.value)} className={styles.searchInput} />
+            {loading
+              ? <div className={styles.centered}><Spinner /></div>
+              : rooms.length === 0
+              ? <EmptyState icon="🏠" title="No rooms" description="Create your first room." />
+              : (
+                <div className={styles.roomList}>
+                  {rooms.map((room) => {
+                    const done  = room.members?.filter((m) => m.isCompleted).length || 0;
+                    const total = room.members?.length || 0;
+                    const isSelected = selectedRoom?._id === room._id;
+                    return (
+                      <button
+                        key={room._id}
+                        className={[styles.roomListItem, isSelected ? styles.roomListItemActive : ''].join(' ')}
+                        onClick={() => setSelectedRoom(room)}
+                      >
+                        <div className={styles.roomListItemHeader}>
+                          <span className={styles.roomListItemName}>{room.name}</span>
+                          <div className={styles.roomListItemBadges}>
+                            {room.joinable && <Badge variant="success" size="sm">Open</Badge>}
+                            <code className={styles.roomListItemCode}>{room.code}</code>
+                          </div>
+                        </div>
+                        <div className={styles.roomListItemMeta}>
+                          <span>{total} member{total !== 1 ? 's' : ''}</span>
+                          <Badge variant={done === total && total > 0 ? 'success' : 'default'} size="sm">{done}/{total}</Badge>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
           </div>
 
           {/* Detail panel */}
           <div className={styles.detailCol}>
-            {selectedRoom ? (
-              <RoomPanel
-                key={selectedRoom._id}
-                room={selectedRoom}
-                onUpdate={handleRoomUpdate}
-              />
-            ) : (
-              <div className={styles.noneSelected}>
-                <EmptyState icon="👈" title="Select a room"
-                  description="Choose a room from the list to manage it." />
-              </div>
-            )}
+            {selectedRoom
+              ? <RoomPanel key={selectedRoom._id} room={selectedRoom} onUpdate={handleRoomUpdate} onDelete={handleRoomDeleted} />
+              : <div className={styles.noneSelected}><EmptyState icon="👈" title="Select a room" description="Choose a room from the list to manage it." /></div>}
           </div>
         </div>
       </div>
 
-      {showCreate && (
-        <CreateRoomModal
-          onClose={() => setShowCreate(false)}
-          onCreated={handleRoomCreated}
-        />
-      )}
+      {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} onCreated={handleRoomCreated} />}
     </AppLayout>
   );
 };

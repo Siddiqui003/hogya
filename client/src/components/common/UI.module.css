@@ -15,7 +15,7 @@
 .badge_success { background: var(--color-success-bg); color: var(--color-success-dark); }
 .badge_warning { background: var(--color-warning-bg); color: #92400e; }
 .badge_danger  { background: var(--color-danger-bg);  color: var(--color-danger-dark); }
-.badge_admin   { background: #ede9fe; color: #6d28d9; }
+.badge_admin   { background: var(--color-primary-bg); color: var(--color-primary-dark); }
 
 /* ── Spinner ───────────────────────────────────────────────────────────────── */
 .spinner {

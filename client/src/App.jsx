@@ -11,17 +11,15 @@ import { PageLoader } from './components/common/UI';
 
 import LoginPage        from './pages/LoginPage';
 import RegisterPage     from './pages/RegisterPage';
-import DashboardPage    from './pages/DashboardPage';
-import RoomPage         from './pages/RoomPage';
-import AdminPage        from './pages/AdminPage';
-import NotFoundPage     from './pages/NotFoundPage';
-import UnauthorizedPage from './pages/UnauthorizedPage';
+import JoinPage             from './pages/JoinPage';
+import RoomPage             from './pages/RoomPage';
+import AdminPage            from './pages/AdminPage';
+import ChangePasswordPage   from './pages/ChangePasswordPage';
+import NotFoundPage         from './pages/NotFoundPage';
+import UnauthorizedPage     from './pages/UnauthorizedPage';
 
-// ── Socket initialiser ────────────────────────────────────────────────────────
-// Rendered once inside BrowserRouter so useNavigate is available to the hook.
 const SocketInitialiser = () => { useSocket(); return null; };
 
-// ── Route guards ──────────────────────────────────────────────────────────────
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
   return isAuthenticated() ? children : <Navigate to="/login" replace />;
@@ -34,28 +32,22 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// Redirect already-authenticated users away from login/register
 const PublicRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
-  return isAuthenticated() ? <Navigate to="/dashboard" replace /> : children;
+  return isAuthenticated() ? <Navigate to="/join" replace /> : children;
 };
 
-// ── App shell — handles init + session expiry ─────────────────────────────────
 function AppShell() {
   const { initialising } = useAuthInit();
   const [sessionExpired, setSessionExpired] = useState(false);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
 
-  // Listen for 401s from the Axios interceptor
   useEffect(() => {
-    const handler = () => {
-      if (isAuthenticated) setSessionExpired(true);
-    };
+    const handler = () => { if (isAuthenticated) setSessionExpired(true); };
     window.addEventListener('tf:session-expired', handler);
     return () => window.removeEventListener('tf:session-expired', handler);
   }, [isAuthenticated]);
 
-  // Blank full-page spinner while we verify the stored token
   if (initialising) return <PageLoader />;
 
   return (
@@ -69,33 +61,29 @@ function AppShell() {
       )}
 
       <Routes>
-        {/* Root — redirect based on auth state */}
-        <Route
-          path="/"
-          element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />}
-        />
+        {/* Root */}
+        <Route path="/" element={<Navigate to={isAuthenticated ? '/join' : '/login'} replace />} />
 
-        {/* Public (redirect to dashboard if already logged in) */}
+        {/* Public */}
         <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
 
         {/* Protected */}
-        <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-        <Route path="/rooms/:id" element={<PrivateRoute><RoomPage /></PrivateRoute>} />
+        <Route path="/join"            element={<PrivateRoute><JoinPage /></PrivateRoute>} />
+        <Route path="/rooms/:id"       element={<PrivateRoute><RoomPage /></PrivateRoute>} />
+        <Route path="/change-password" element={<PrivateRoute><ChangePasswordPage /></PrivateRoute>} />
 
-        {/* Admin only */}
+        {/* Admin */}
         <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
 
         {/* Error pages */}
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        <Route path="/404"          element={<NotFoundPage />} />
         <Route path="*"             element={<NotFoundPage />} />
       </Routes>
     </>
   );
 }
 
-// ── Root App ─────────────────────────────────────────────────────────────────
 function App() {
   return (
     <ErrorBoundary>

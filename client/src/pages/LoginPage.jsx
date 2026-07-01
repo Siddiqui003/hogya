@@ -5,18 +5,11 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import { Alert } from '../components/common/UI';
 import styles from './Auth.module.css';
-import { Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
   const [form, setForm] = useState({ username: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
-
   const { login, loading, error, clearError } = useAuthStore();
   const navigate = useNavigate();
-  
-  const togglePasswordVisibility = () => {
-    setShowPassword((prev) => !prev);
-  };
 
   const handleChange = (e) => {
     clearError();
@@ -26,7 +19,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await login(form.username, form.password);
-    if (result.success) navigate('/dashboard');
+    if (result.success) navigate('/join');
   };
 
   return (
@@ -62,30 +55,12 @@ const LoginPage = () => {
           <Input
             label="Password"
             name="password"
-            type={showPassword ? 'text' : 'password'}
+            type="password"
             value={form.password}
             onChange={handleChange}
             placeholder="••••••••"
             autoComplete="current-password"
             required
-            rightElement={
-              <button
-                type="button"
-                className={styles.toggleButton}
-                onClick={togglePasswordVisibility}
-                aria-label={
-                  showPassword
-                    ? 'Hide password'
-                    : 'Show password'
-                }
-              >
-                {showPassword ? (
-                  <EyeOff size={20} />
-                ) : (
-                  <Eye size={20} />
-                )}
-              </button>
-            }
           />
           <Button type="submit" fullWidth loading={loading} size="lg">
             Sign in

@@ -33,7 +33,7 @@ const RegisterPage = () => {
     const errs = validate();
     if (Object.keys(errs).length) { setFieldErrors(errs); return; }
     const result = await register(form.username, form.password, form.displayName);
-    if (result.success) navigate('/dashboard');
+    if (result.success) navigate('/join');
   };
 
   return (

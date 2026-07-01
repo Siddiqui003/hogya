@@ -6,22 +6,14 @@ const { sendSuccess, sendError, catchAsync, parseMongooseErrors } = require('../
 
 // ── Create room ───────────────────────────────────────────────────────────────
 const createRoom = catchAsync(async (req, res) => {
-  const { name, taskName, description, code } = req.body;
+  const { name, taskName, description, code, joinable } = req.body;
+  if (!name || !taskName) return sendError(res, 'Room name and task name are required.', 400);
 
-  if (!name || !taskName) {
-    return sendError(res, 'Room name and task name are required.', 400);
-  }
+  const roomCode = code ? code.trim().toUpperCase() : await generateRoomCode();
 
-  const roomCode = code
-    ? code.trim().toUpperCase()
-    : await generateRoomCode();
-
-  // Check code collision if manually provided
   if (code) {
     const exists = await Room.findOne({ code: roomCode });
-    if (exists) {
-      return sendError(res, `Room code "${roomCode}" is already in use.`, 409);
-    }
+    if (exists) return sendError(res, `Room code "${roomCode}" is already in use.`, 409);
   }
 
   let room;
@@ -31,18 +23,16 @@ const createRoom = catchAsync(async (req, res) => {
       taskName: taskName.trim(),
       description: description?.trim(),
       code: roomCode,
+      joinable: joinable || false,
       createdBy: req.user._id,
       members: [],
     });
   } catch (err) {
     const validationErrors = parseMongooseErrors(err);
-    if (validationErrors) {
-      return sendError(res, 'Validation failed.', 422, validationErrors);
-    }
+    if (validationErrors) return sendError(res, 'Validation failed.', 422, validationErrors);
     throw err;
   }
 
-  // Log activity
   await Activity.create({
     room: room._id,
     user: req.user._id,
@@ -51,11 +41,10 @@ const createRoom = catchAsync(async (req, res) => {
   });
 
   await room.populate('createdBy', 'username displayName');
-
   return sendSuccess(res, { room }, 201, 'Room created successfully.');
 });
 
-// ── List all rooms (admin view) ───────────────────────────────────────────────
+// ── List all rooms ────────────────────────────────────────────────────────────
 const listAllRooms = catchAsync(async (req, res) => {
   const { page = 1, limit = 20, search } = req.query;
   const skip = (Number(page) - 1) * Number(limit);
@@ -81,16 +70,11 @@ const listAllRooms = catchAsync(async (req, res) => {
 
   return sendSuccess(res, {
     rooms,
-    pagination: {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      pages: Math.ceil(total / Number(limit)),
-    },
+    pagination: { total, page: Number(page), limit: Number(limit), pages: Math.ceil(total / Number(limit)) },
   });
 });
 
-// ── Get single room (admin) ───────────────────────────────────────────────────
+// ── Get single room ───────────────────────────────────────────────────────────
 const getRoom = catchAsync(async (req, res) => {
   const room = await Room.findById(req.params.id)
     .populate('createdBy', 'username displayName')
@@ -98,50 +82,85 @@ const getRoom = catchAsync(async (req, res) => {
     .lean({ virtuals: true });
 
   if (!room) return sendError(res, 'Room not found.', 404);
-
   return sendSuccess(res, { room });
 });
 
 // ── Update room ───────────────────────────────────────────────────────────────
 const updateRoom = catchAsync(async (req, res) => {
-  const { name, taskName, description, isActive } = req.body;
-
+  const { name, taskName, description, isActive, joinable } = req.body;
   const allowed = {};
   if (name !== undefined)        allowed.name = name.trim();
   if (taskName !== undefined)    allowed.taskName = taskName.trim();
   if (description !== undefined) allowed.description = description.trim();
   if (isActive !== undefined)    allowed.isActive = isActive;
+  if (joinable !== undefined)    allowed.joinable = joinable;
 
-  if (!Object.keys(allowed).length) {
-    return sendError(res, 'No updatable fields provided.', 400);
-  }
+  if (!Object.keys(allowed).length) return sendError(res, 'No updatable fields provided.', 400);
 
-  const room = await Room.findByIdAndUpdate(req.params.id, allowed, {
-    new: true,
-    runValidators: true,
-  })
+  const room = await Room.findByIdAndUpdate(req.params.id, allowed, { new: true, runValidators: true })
     .populate('createdBy', 'username displayName')
     .populate('members.user', 'username displayName');
 
   if (!room) return sendError(res, 'Room not found.', 404);
 
+  // Notify room members of joinable status change
+  if (joinable !== undefined) {
+    req.io.to(room._id.toString()).emit('room:updated', {
+      roomId: room._id,
+      joinable: room.joinable,
+    });
+  }
+
   return sendSuccess(res, { room }, 200, 'Room updated.');
 });
 
-// ── Delete room ───────────────────────────────────────────────────────────────
+// ── Toggle joinable ───────────────────────────────────────────────────────────
+const toggleJoinable = catchAsync(async (req, res) => {
+  const room = await Room.findById(req.params.id);
+  if (!room) return sendError(res, 'Room not found.', 404);
+
+  room.joinable = !room.joinable;
+  await room.save();
+
+  req.io.to(room._id.toString()).emit('room:updated', {
+    roomId: room._id,
+    joinable: room.joinable,
+  });
+
+  return sendSuccess(
+    res,
+    { joinable: room.joinable },
+    200,
+    `Room is now ${room.joinable ? 'open for joining' : 'closed'}.`
+  );
+});
+
+// ── Soft delete room ──────────────────────────────────────────────────────────
 const deleteRoom = catchAsync(async (req, res) => {
   const room = await Room.findByIdAndUpdate(
     req.params.id,
     { isActive: false },
     { new: true }
   );
-
   if (!room) return sendError(res, 'Room not found.', 404);
 
+  req.io.to(room._id.toString()).emit('room:deleted', { roomId: room._id });
   return sendSuccess(res, {}, 200, 'Room deactivated.');
 });
 
-// ── Add member to room ────────────────────────────────────────────────────────
+// ── Hard delete room ──────────────────────────────────────────────────────────
+const hardDeleteRoom = catchAsync(async (req, res) => {
+  const room = await Room.findByIdAndDelete(req.params.id);
+  if (!room) return sendError(res, 'Room not found.', 404);
+
+  // Also delete all activity records for this room
+  await Activity.deleteMany({ room: req.params.id });
+
+  req.io.to(room._id.toString()).emit('room:deleted', { roomId: room._id });
+  return sendSuccess(res, {}, 200, 'Room permanently deleted.');
+});
+
+// ── Add member ────────────────────────────────────────────────────────────────
 const addMember = catchAsync(async (req, res) => {
   const { userId } = req.body;
   if (!userId) return sendError(res, 'userId is required.', 400);
@@ -154,15 +173,11 @@ const addMember = catchAsync(async (req, res) => {
   if (!room) return sendError(res, 'Room not found.', 404);
   if (!user) return sendError(res, 'User not found.', 404);
   if (!room.isActive) return sendError(res, 'Room is not active.', 400);
-
-  if (room.hasMember(userId)) {
-    return sendError(res, `${user.username} is already a member of this room.`, 409);
-  }
+  if (room.hasMember(userId)) return sendError(res, `${user.username} is already a member.`, 409);
 
   room.members.push({ user: userId, isCompleted: false, completedAt: null });
   await room.save();
 
-  // Log activity
   await Activity.create({
     room: room._id,
     user: userId,
@@ -170,32 +185,26 @@ const addMember = catchAsync(async (req, res) => {
     meta: { addedBy: req.user.username },
   });
 
-  // Emit real-time update
   req.io.to(room._id.toString()).emit('member:joined', {
     roomId: room._id,
     user: user.toPublic(),
   });
 
   await room.populate('members.user', 'username displayName');
-
   return sendSuccess(res, { room }, 200, `${user.username} added to room.`);
 });
 
-// ── Remove member from room ───────────────────────────────────────────────────
+// ── Remove member ─────────────────────────────────────────────────────────────
 const removeMember = catchAsync(async (req, res) => {
   const { userId } = req.params;
 
   const room = await Room.findById(req.params.id);
   if (!room) return sendError(res, 'Room not found.', 404);
-
-  if (!room.hasMember(userId)) {
-    return sendError(res, 'User is not a member of this room.', 404);
-  }
+  if (!room.hasMember(userId)) return sendError(res, 'User is not a member.', 404);
 
   room.members = room.members.filter((m) => m.user.toString() !== userId);
   await room.save();
 
-  // Log activity
   await Activity.create({
     room: room._id,
     user: userId,
@@ -203,18 +212,13 @@ const removeMember = catchAsync(async (req, res) => {
     meta: { removedBy: req.user.username },
   });
 
-  req.io.to(room._id.toString()).emit('member:left', {
-    roomId: room._id,
-    userId,
-  });
-
+  req.io.to(room._id.toString()).emit('member:left', { roomId: room._id, userId });
   return sendSuccess(res, {}, 200, 'Member removed from room.');
 });
 
-// ── List all users (admin helper for assignment UI) ───────────────────────────
+// ── List all users ────────────────────────────────────────────────────────────
 const listAllUsers = catchAsync(async (req, res) => {
   const { search } = req.query;
-
   const filter = { isActive: true };
   if (search) {
     filter.$or = [
@@ -222,7 +226,6 @@ const listAllUsers = catchAsync(async (req, res) => {
       { displayName: { $regex: search, $options: 'i' } },
     ];
   }
-
   const users = await User.find(filter)
     .select('username displayName role createdAt')
     .sort({ username: 1 })
@@ -231,10 +234,9 @@ const listAllUsers = catchAsync(async (req, res) => {
   return sendSuccess(res, { users });
 });
 
-// ── Get room activity feed (admin) ────────────────────────────────────────────
+// ── Get room activity ─────────────────────────────────────────────────────────
 const getRoomActivity = catchAsync(async (req, res) => {
   const { limit = 50 } = req.query;
-
   const room = await Room.findById(req.params.id);
   if (!room) return sendError(res, 'Room not found.', 404);
 
@@ -247,13 +249,7 @@ const getRoomActivity = catchAsync(async (req, res) => {
 });
 
 module.exports = {
-  createRoom,
-  listAllRooms,
-  getRoom,
-  updateRoom,
-  deleteRoom,
-  addMember,
-  removeMember,
-  listAllUsers,
-  getRoomActivity,
+  createRoom, listAllRooms, getRoom, updateRoom,
+  toggleJoinable, deleteRoom, hardDeleteRoom,
+  addMember, removeMember, listAllUsers, getRoomActivity,
 };

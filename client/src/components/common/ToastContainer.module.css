@@ -54,7 +54,7 @@
 }
 .close:hover { opacity: 1; }
 
-.info    { background: rgba(238,242,255,0.97); color: var(--color-primary-dark); border-color: #c7d2fe; }
-.success { background: rgba(209,250,229,0.97); color: var(--color-success-dark); border-color: #a7f3d0; }
-.warning { background: rgba(254,243,199,0.97); color: #92400e; border-color: #fde68a; }
-.danger  { background: rgba(254,226,226,0.97); color: var(--color-danger-dark); border-color: #fecaca; }
+.info    { background: var(--color-primary-bg);  color: var(--color-primary-dark);  border-color: var(--color-primary-light); }
+.success { background: var(--color-success-bg);  color: var(--color-success-dark);  border-color: var(--color-success); }
+.warning { background: var(--color-warning-bg);  color: var(--color-text);           border-color: var(--color-warning); }
+.danger  { background: var(--color-danger-bg);   color: var(--color-danger-dark);    border-color: var(--color-danger); }
