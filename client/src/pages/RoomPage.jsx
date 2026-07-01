@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useRoomStore from '../store/roomStore';
 import useAuthStore from '../store/authStore';
 import useSocketStore from '../store/socketStore';
 import { useRoomSocket } from '../hooks/useSocket';
+import { roomService } from '../services/roomService';
+import { taskService } from '../services/taskService';
 import AppLayout from '../components/layout/AppLayout';
 import Button from '../components/common/Button';
 import { Badge, Avatar, PageLoader, Alert, EmptyState } from '../components/common/UI';
@@ -51,7 +53,6 @@ const MemberRow = ({ member, isCurrentUser, onlineUsers, isPulsing }) => {
 const ActivityItem = ({ activity }) => {
   const name = activity.user?.displayName || activity.user?.username || 'Someone';
   const isCompletion = activity.type === 'task_completed';
-
   return (
     <div className={[styles.activityItem, isCompletion ? styles.activityDone : ''].join(' ')}>
       <span className={styles.activityDot} />
@@ -67,56 +68,100 @@ const ActivityItem = ({ activity }) => {
 const RoomPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentRoom, activities, loading, actionLoading, error, recentlyUpdated, fetchRoom, completeTask, reopenTask, clearError, clearCurrentRoom } = useRoomStore();
+
+  // ── ALL hooks must come before any conditional return ──────────────────────
+  const { currentRoom, activities, loading, actionLoading, error,
+          recentlyUpdated, fetchRoom, completeTask, reopenTask,
+          clearError, clearCurrentRoom } = useRoomStore();
   const { user, isAdmin } = useAuthStore();
   const onlineUsers = useSocketStore((s) => s.getOnlineUsers(id));
+  const [leaving, setLeaving]   = useState(false);
+  const [resetting, setResetting] = useState(false);
 
-  // Join the socket room for real-time updates
   useRoomSocket(id);
 
   useEffect(() => {
     fetchRoom(id);
     return () => clearCurrentRoom();
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Derived values (safe — room may be null, handled below) ───────────────
+  const members       = currentRoom?.members || [];
+  const completedCount = members.filter((m) => m.isCompleted).length;
+  const totalMembers  = members.length;
+  const pct           = totalMembers > 0 ? Math.round((completedCount / totalMembers) * 100) : 0;
+  const allDone       = totalMembers > 0 && completedCount === totalMembers;
+  const myMember      = members.find((m) => m.user?._id?.toString() === user?._id?.toString());
+  const myCompleted   = myMember?.isCompleted || false;
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleTaskToggle = async () => {
+    if (myCompleted) await reopenTask(id, user._id);
+    else             await completeTask(id, user._id);
+  };
+
+  const handleLeave = async () => {
+    if (!confirm(`Leave "${currentRoom?.name}"? You can rejoin with the room code.`)) return;
+    setLeaving(true);
+    try {
+      await roomService.leaveRoom(id);
+      navigate('/join');
+    } catch {
+      setLeaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!confirm('Reset ALL member statuses in this room to pending? This cannot be undone.')) return;
+    setResetting(true);
+    try {
+      console.log("in handle reset try");
+      await taskService.resetAll(id);
+    } catch {
+      // socket event task:reset will update UI; error shown via toast from useSocket
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  // ── Conditional renders AFTER all hooks ────────────────────────────────────
   if (loading && !currentRoom) return <PageLoader />;
+
   if (!currentRoom && !loading) {
     return (
       <AppLayout>
-        <EmptyState icon="🚪" title="Room not found"
-          description="This room doesn't exist or you're not a member."
-          action={<Button onClick={() => navigate('/dashboard')}>Back to dashboard</Button>} />
+        <EmptyState
+          icon="🚪"
+          title="Room not found"
+          description="This room doesn't exist or you are not a member."
+          action={<Button onClick={() => navigate('/join')}>Back to rooms</Button>}
+        />
       </AppLayout>
     );
   }
 
   const room = currentRoom;
-  const members = room?.members || [];
-  const completedCount = members.filter((m) => m.isCompleted).length;
-  const totalMembers = members.length;
-  const pct = totalMembers > 0 ? Math.round((completedCount / totalMembers) * 100) : 0;
-  const allDone = totalMembers > 0 && completedCount === totalMembers;
-
-  const myMember = members.find(
-    (m) => m.user?._id?.toString() === user?._id?.toString()
-  );
-  const myCompleted = myMember?.isCompleted || false;
-
-  const handleTaskToggle = async () => {
-    if (myCompleted) {
-      await reopenTask(id, user._id);
-    } else {
-      await completeTask(id, user._id);
-    }
-  };
 
   return (
     <AppLayout>
       <div className={styles.page}>
-        {/* Back nav */}
-        <button className={styles.backBtn} onClick={() => navigate('/dashboard')}>
-          ← Back to dashboard
-        </button>
+        {/* Top nav */}
+        <div className={styles.topNav}>
+          <button className={styles.backBtn} onClick={() => navigate('/join')}>
+            ← Back to rooms
+          </button>
+          <div className={styles.topNavActions}>
+            {isAdmin() && (
+              <Button variant="secondary" size="sm" onClick={handleReset} loading={resetting}>
+                ↺ Reset statuses
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={handleLeave} loading={leaving}
+              className={styles.leaveBtn}>
+              Leave room
+            </Button>
+          </div>
+        </div>
 
         {error && <Alert variant="danger" onClose={clearError}>{error}</Alert>}
 
@@ -129,19 +174,22 @@ const RoomPage = () => {
                 <div className={styles.roomTitleRow}>
                   <h1 className={styles.roomTitle}>{room.name}</h1>
                   <code className={styles.roomCode}>{room.code}</code>
+                  {!room.joinable && (
+                    <Badge variant="warning">Closed</Badge>
+                  )}
                 </div>
                 {room.description && (
                   <p className={styles.roomDesc}>{room.description}</p>
                 )}
               </div>
 
-              {/* Overall progress */}
+              {/* Progress */}
               <div className={styles.progressSection}>
                 <div className={styles.progressHeader}>
                   <span className={styles.progressLabel}>Team progress</span>
                   <span className={styles.progressCount}>
                     {completedCount} / {totalMembers}
-                    <span className={styles.progressPct}>{pct}%</span>
+                    <span className={styles.progressPct}> {pct}%</span>
                   </span>
                 </div>
                 <div className={styles.progressTrack}>
@@ -210,7 +258,9 @@ const RoomPage = () => {
             </div>
 
             {activities.length === 0 ? (
-              <p className={styles.noActivity}>No activity yet. Complete your task to get started.</p>
+              <p className={styles.noActivity}>
+                No activity yet. Complete your task to get started.
+              </p>
             ) : (
               <div className={styles.activityFeed}>
                 {activities.map((a) => (

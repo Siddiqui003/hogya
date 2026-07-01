@@ -7,3 +7,4 @@ export const taskService = {
   getAllStatuses: (roomId) => api.get(`/tasks/${roomId}/all-statuses`),
   resetAll: (roomId) => api.post(`/tasks/${roomId}/reset`),
 };
+console.log("in taskservice.js");

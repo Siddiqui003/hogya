@@ -137,16 +137,35 @@ const useRoomStore = create((set, get) => ({
     if (payload.activity) get()._prependActivity(payload.activity);
   },
 
+  // handleTaskReset: (payload) => {
+  //   console.log("in handletaskreset");
+  //   const room = get().currentRoom;
+  //   if (!room || room._id !== payload.roomId) return;
+  //   const updated = {
+  //     ...room,
+  //     members: room.members.map((m) => ({ ...m, isCompleted: false, completedAt: null })),
+  //   };
+  //   set({ currentRoom: updated });
+  // },
   handleTaskReset: (payload) => {
     const room = get().currentRoom;
-    if (!room || room._id !== payload.roomId) return;
-    const updated = {
-      ...room,
-      members: room.members.map((m) => ({ ...m, isCompleted: false, completedAt: null })),
-    };
-    set({ currentRoom: updated });
-  },
+    if (!room) return;
 
+    const payloadRoomId = payload.roomId?.toString() || payload.room?._id?.toString();
+    if (!payloadRoomId || room._id?.toString() !== payloadRoomId) return;
+
+    // If server sent an authoritative members array, use it (preserve shape).
+    // Otherwise, reset locally as before.
+    const members = Array.isArray(payload.members)
+      ? payload.members.map((m) => ({
+          user: m.user,
+          isCompleted: !!m.isCompleted,
+          completedAt: m.completedAt || null,
+        }))
+      : room.members.map((m) => ({ ...m, isCompleted: false, completedAt: null }));
+
+    set({ currentRoom: { ...room, members } });
+  },
   handleMemberJoined: (payload) => {
     const room = get().currentRoom;
     if (!room || room._id.toString() !== payload.roomId.toString()) return;

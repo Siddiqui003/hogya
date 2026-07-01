@@ -19,5 +19,5 @@ router.get('/:roomId/all-statuses',   getAllStatuses);
 
 // Admin only: reset an entire room's completion state
 router.post('/:roomId/reset', requireRole('admin'), resetAllStatuses);
-
+console.log("in tasks.js");
 module.exports = router;

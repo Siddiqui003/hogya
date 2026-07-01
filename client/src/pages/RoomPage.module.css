@@ -1,13 +1,26 @@
 .page { display: flex; flex-direction: column; gap: var(--space-5); }
 
+.topNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topNavActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .backBtn {
   background: none; border: none; cursor: pointer;
   font-size: 0.875rem; color: var(--color-text-muted);
   padding: 0; display: inline-flex; align-items: center; gap: 0.375rem;
   transition: color var(--transition-fast);
-  align-self: flex-start;
 }
 .backBtn:hover { color: var(--color-primary); }
+
+.leaveBtn { color: var(--color-danger) !important; }
 
 /* Two column layout */
 .layout {
@@ -64,8 +77,8 @@
 
 /* Task card */
 .taskCard {
-  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
-  border: 1.5px solid #c7d2fe;
+  background: var(--color-primary-bg);
+  border: 1.5px solid var(--color-primary-light);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
 }
@@ -115,8 +128,8 @@
 }
 .memberRow:last-child { border-bottom: none; }
 .memberRow:hover { background: var(--color-bg-alt); }
-.memberDone { background: #f0fdf4; }
-.memberDone:hover { background: #dcfce7; }
+.memberDone { background: var(--color-success-bg); }
+.memberDone:hover { background: var(--color-success-bg); filter: brightness(0.96); }
 
 .memberPulse { animation: rowPulse 1.6s ease-out; }
 @keyframes rowPulse {

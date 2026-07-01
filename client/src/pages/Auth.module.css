@@ -64,19 +64,7 @@
   color: var(--color-text-secondary);
 }
 
-.toggleButton {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  color: #6b7280;
-}
-
-.toggleButton:hover {
-  color: #374151;
+/* Dark mode overrides */
+:global([data-theme="dark"]) .page {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1a1040 100%);
 }

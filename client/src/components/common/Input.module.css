@@ -7,6 +7,8 @@
 }
 .required { color: var(--color-danger); }
 
+.inputWrap { position: relative; display: flex; align-items: center; }
+
 .input {
   width: 100%;
   padding: 0.625rem 0.875rem;
@@ -24,32 +26,25 @@
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
 }
-.inputError {
-  border-color: var(--color-danger);
+.inputError { border-color: var(--color-danger); }
+.inputError:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+.inputPadded { padding-right: 2.75rem; }
+
+.eyeBtn {
+  position: absolute;
+  right: 0.625rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+  line-height: 0;
 }
-.inputError:focus {
-  box-shadow: 0 0 0 3px rgba(239,68,68,0.15);
-}
+.eyeBtn:hover { color: var(--color-text); }
 
 .hint  { font-size: 0.8125rem; color: var(--color-text-muted); }
 .error { font-size: 0.8125rem; color: var(--color-danger); }
-
-.inputWrapper {
-  position: relative;
-  width: 100%;
-}
-
-.hasRightElement {
-  padding-right: 3rem;
-}
-
-.rightElement {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}

@@ -13,6 +13,7 @@ const completeTask = catchAsync(async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user._id;
 
+
   const room = await Room.findOne({ _id: roomId, isActive: true }).populate(
     'members.user',
     'username displayName'
@@ -209,6 +210,7 @@ const getAllStatuses = catchAsync(async (req, res) => {
 // ── Admin: reset all statuses in a room ──────────────────────────────────────
 // POST /api/tasks/:roomId/reset  (admin only — enforced in route)
 const resetAllStatuses = catchAsync(async (req, res) => {
+  console.log("in resetallstatuses");
   const { roomId } = req.params;
 
   const room = await Room.findOne({ _id: roomId, isActive: true });
@@ -225,8 +227,10 @@ const resetAllStatuses = catchAsync(async (req, res) => {
       }, {}),
     }
   );
+  const updatedRoom = await Room.findById(roomId).populate('members.user', 'username displayName role').lean();
+  emitToRoom(req.io, roomId, 'task:reset', { roomId, members: updatedRoom.members });
 
-  emitToRoom(req.io, roomId, 'task:reset', { roomId });
+  // emitToRoom(req.io, roomId, 'task:reset', { roomId });
 
   return sendSuccess(res, { roomId }, 200, 'All task statuses have been reset.');
 });

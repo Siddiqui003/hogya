@@ -141,3 +141,82 @@
 .userHandle { display: block; font-size: 0.8125rem; color: var(--color-text-muted); }
 
 .centered { display: flex; justify-content: center; padding: var(--space-6); }
+
+/* ── Joinable toggle ────────────────────────────────────────────────────────── */
+.joinableRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1.5px solid var(--color-border);
+  background: var(--color-bg-alt);
+}
+.joinableLabel { display: block; font-size: 0.875rem; font-weight: 500; color: var(--color-text); }
+.joinableDesc  { display: block; font-size: 0.8125rem; color: var(--color-text-muted); margin-top: 0.125rem; }
+
+.toggle {
+  position: relative;
+  width: 2.75rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-border-dark);
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-base);
+  flex-shrink: 0;
+}
+.toggle:disabled { opacity: 0.5; cursor: default; }
+.toggleOn { background: var(--color-success); }
+
+.toggleKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base);
+}
+.toggleOn .toggleKnob { transform: translateX(1.25rem); }
+
+/* ── Delete modal ───────────────────────────────────────────────────────────── */
+.deleteBody { padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+
+.deleteModes { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.modeBtn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  font-family: var(--font-sans);
+}
+.modeBtn:hover { border-color: var(--color-border-dark); background: var(--color-bg-alt); }
+.modeBtnActive { border-color: var(--color-primary); background: var(--color-primary-bg); }
+.modeBtnHard   { border-color: var(--color-danger);  background: var(--color-danger-bg); }
+
+.modeBtnTitle { font-size: 0.9375rem; font-weight: 600; color: var(--color-text); }
+.modeBtnDesc  { font-size: 0.8125rem; color: var(--color-text-muted); line-height: 1.4; }
+
+/* ── Checkbox ───────────────────────────────────────────────────────────────── */
+.checkLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.checkLabel input { margin-top: 2px; accent-color: var(--color-primary); }
+
+/* ── Room list badge row ─────────────────────────────────────────────────────── */
+.roomListItemBadges { display: flex; align-items: center; gap: var(--space-1); }
